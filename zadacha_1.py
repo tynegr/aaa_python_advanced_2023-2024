@@ -4,9 +4,17 @@ from datetime import datetime
 original_write = sys.stdout.write
 
 
-def my_write(string_text):
-    timestamp = datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')
+def my_write(string_text: str) -> None:
+    """
+    Custom write function that adds a timestamp to the output.
 
+    Parameters:
+        string_text (str): The text to be written.
+
+    Returns:
+        None
+    """
+    timestamp = datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')
     original_write(f'{timestamp}: {string_text}')
 
 
