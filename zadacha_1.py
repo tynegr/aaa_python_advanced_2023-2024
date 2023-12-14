@@ -5,9 +5,9 @@ original_write = sys.stdout.write
 
 
 def my_write(string_text):
-    timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
+    timestamp = datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')
 
-    original_write(f"{timestamp}: {string_text}")
+    original_write(f'{timestamp}: {string_text}')
 
 
 sys.stdout.write = my_write
