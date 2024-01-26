@@ -81,55 +81,48 @@ async def game(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         keyboard_state[row][col] = CROSS
 
         # Check if the user has won
-        if won([keyboard_state[r][c] for r in range(3) for c in range(3)]):
-            await query.answer(f'Congratulations! '
-                               f'You won, {user.first_name}!', show_alert=True)
-            keyboard = generate_keyboard(keyboard_state)
-            # Update keyboard with the last move
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await query.edit_message_text(f'X (your) turn!'
-                                          f' Please, put X '
-                                          f'to the free place', reply_markup=reply_markup)
-            return end(update, context)  # Call end function when the user wins
-        elif all(keyboard_state[r][c] != FREE_SPACE for r in range(3) for c in range(3)):
-            # Check if the game is a draw
-            await query.answer('It\'s a draw!', show_alert=True)
-            keyboard = generate_keyboard(keyboard_state)  # Update keyboard with the last move
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await query.edit_message_text(f'X (your) turn! Please, put X to the free place', reply_markup=reply_markup)
-            return end(update, context)  # Call end function when the game is a draw
-        else:
-            # Opponent's move (simple AI: place 'O' randomly in a free cell)
-            empty_cells = [(r, c) for r in range(3) for c in range(3) if keyboard_state[r][c] == FREE_SPACE]
-            if empty_cells:
-                opp_choice = random.choice(empty_cells)
-                keyboard_state[opp_choice[0]][opp_choice[1]] = ZERO
+        if check_game_over(keyboard_state, query):
+            return end(update, context)
 
-                # Check if the opponent has won
-                if won([keyboard_state[r][c] for r in range(3) for c in range(3)]):
-                    await query.answer(f'Sorry, {user.first_name}. You lost. Better luck next time!', show_alert=True)
-                    keyboard = generate_keyboard(keyboard_state)  # Update keyboard with the last move
-                    reply_markup = InlineKeyboardMarkup(keyboard)
-                    await query.edit_message_text(f'X (your) turn! Please, put X to the free place', reply_markup=reply_markup)
-                    return end(update, context)  # Call end function when the opponent wins
+        # Opponent's move (simple AI: place 'O' randomly in a free cell)
+        empty_cells = [(r, c) for r in range(3) for c in range(3) if keyboard_state[r][c] == FREE_SPACE]
+        if empty_cells:
+            opp_choice = random.choice(empty_cells)
+            keyboard_state[opp_choice[0]][opp_choice[1]] = ZERO
 
-                # Update the keyboard
-                keyboard = generate_keyboard(keyboard_state)
-                reply_markup = InlineKeyboardMarkup(keyboard)
-                await query.edit_message_text(f'X (your) turn! Please, put X to the free place', reply_markup=reply_markup)
+            # Check if the opponent has won
+            if check_game_over(keyboard_state, query):
+                return end(update, context)
 
-                return CONTINUE_GAME
-            else:
-                # No empty cells left, the game is a draw
-                await query.answer('It\'s a draw!', show_alert=True)
-                keyboard = generate_keyboard(keyboard_state)  # Update keyboard with the last move
-                reply_markup = InlineKeyboardMarkup(keyboard)
-                await query.edit_message_text(f'X (your) turn! Please, put X to the free place', reply_markup=reply_markup)
-                return end(update, context)  # Call end function when the game is a draw
+        # Update the keyboard
+        keyboard = generate_keyboard(keyboard_state)
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(f'X (your) turn! Please, put X to the free place', reply_markup=reply_markup)
+
+        return CONTINUE_GAME
     else:
         # Cell is already occupied, ask the user to choose again
         await query.answer('This cell is already occupied. Please choose a free cell.')
         return CONTINUE_GAME
+
+
+def check_game_over(keyboard_state: list[list[str]], query: CallbackQuery) -> bool:
+    """Check if the game is over (win or draw)"""
+    user = query.from_user
+
+    # Check if someone has won
+    if won([keyboard_state[r][c] for r in range(3) for c in range(3)]):
+        if keyboard_state[query.data[0]][query.data[1]] == CROSS:
+            await query.answer(f'Congratulations! You won, {user.first_name}!', show_alert=True)
+        else:
+            await query.answer(f'Sorry, {user.first_name}. You lost. Better luck next time!', show_alert=True)
+        return True
+    elif all(keyboard_state[r][c] != FREE_SPACE for r in range(3) for c in range(3)):
+        # Check if the game is a draw
+        await query.answer('It\'s a draw!', show_alert=True)
+        return True
+
+    return False
 
 
 def won(fields: list[str]) -> bool:
@@ -143,6 +136,7 @@ def won(fields: list[str]) -> bool:
     if fields[0] == fields[4] == fields[8] != FREE_SPACE or fields[2] == fields[4] == fields[6] != FREE_SPACE:  # Check diagonals
         return True
     return False
+
 
 
 async def end(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -193,14 +187,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
-
-
-
-
-
